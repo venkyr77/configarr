@@ -23,6 +23,7 @@ import { calculateRootFolderDiff } from "./root-folder";
 import { calculateDelayProfilesDiff, deleteAdditionalDelayProfiles, mapToServerDelayProfile } from "./delay-profiles";
 import { loadServerTags } from "./tags";
 import { getTelemetryInstance, Telemetry } from "./telemetry";
+import { path } from "path";
 
 const pipeline = async (globalConfig: InputConfigSchema, instanceConfig: InputConfigArrInstance, arrType: ArrType) => {
   const api = getUnifiedClient();
@@ -228,7 +229,11 @@ const pipeline = async (globalConfig: InputConfigSchema, instanceConfig: InputCo
 
       for (const folder of rootFolderDiff.missingOnServer) {
         logger.info(`Adding RootFolder missing on server: ${folder}`);
-        await api.addRootFolder({ path: folder });
+        if ("LIDARR" == arrType) {
+          await api.addRootFolder({ name: path.basename(folder), path: folder });
+        } else {
+          await api.addRootFolder({ path: folder });
+        }
       }
 
       logger.info(`Updated RootFolders`);
