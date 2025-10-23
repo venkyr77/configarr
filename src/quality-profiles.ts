@@ -512,9 +512,7 @@ export const calculateQualityProfilesDiff = async (
   for (const unmanagedServerQp of serverQpsUnmanaged) {
     if (unmanagedServerQp?.id == null) continue;
     try {
-      const api = getUnifiedClient();
-      const del = (api as any).deleteQualityProfile ?? ((id: number) => (api as any).delete(`/api/v3/qualityprofile/${id}`));
-      await del(unmanagedServerQp.id);
+      await getUnifiedClient().deleteQualityProfile(unmanagedServerQp.id);
       logger.info(`Deleted unmanaged QualityProfile '${unmanagedServerQp.name}' (id=${unmanagedServerQp.id})`);
     } catch (e) {
       logger.warn(`Failed to delete unmanaged QualityProfile '${unmanagedServerQp?.name}' (id=${unmanagedServerQp?.id}): ${e}`);
