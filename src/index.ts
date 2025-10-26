@@ -11,7 +11,12 @@ import { getConfig, mergeConfigsAndTemplates } from "./config";
 import { calculateCFsToManage, deleteCustomFormat, loadCustomFormatDefinitions, loadServerCustomFormats, manageCf } from "./custom-formats";
 import { logHeading, logInstanceHeading, logger } from "./logger";
 import { calculateMediamanagementDiff, calculateNamingDiff } from "./media-management";
-import { calculateQualityDefinitionDiff, loadQualityDefinitionFromServer } from "./quality-definitions";
+import {
+  calculateQualityDefinitionDiff,
+  deleteQualityProfile,
+  getUnmanagedQualityProfiles,
+  loadQualityDefinitionFromServer,
+} from "./quality-definitions";
 import { calculateQualityProfilesDiff, loadQualityProfilesFromServer } from "./quality-profiles";
 import { cloneRecyclarrTemplateRepo } from "./recyclarr-importer";
 import { cloneTrashRepo, loadQualityDefinitionFromTrash, transformTrashQDs } from "./trash-guide";
