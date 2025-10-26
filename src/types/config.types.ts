@@ -67,6 +67,17 @@ export type InputConfigArrInstance = {
      */
     ignore?: string[];
   };
+  /**
+   * since v<>
+   * Deletes all CustomFormats which are not defined in any qualityprofile
+   */
+  delete_unmanaged_quality_profiles?: {
+    enabled: boolean;
+    /**
+     * Names of quality profiles to ignore deleting
+     */
+    ignore?: string[];
+  };
   quality_definition?: {
     type?: string;
     preferred_ratio?: number; // 0.0 - 1.0

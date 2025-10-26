@@ -215,6 +215,29 @@ const pipeline = async (globalConfig: InputConfigSchema, instanceConfig: InputCo
     logger.info("DryRun: Would create/update QualityProfiles.");
   }
 
+  if (config.delete_unmanaged_quality_profiles?.enabled) {
+    const unmanagedQPs: MergedQualityProfileResource[] = getUnmanagedQualityProfiles(serverCache.qp, config.quality_profiles);
+
+    const ignoreSet = new Set(config.delete_unmanaged_quality_profiles.ignore ?? []);
+
+    const qpsToDelete: MergedQualityProfileResource[] = unmanagedQPs.filter((qp) => !ignoreSet.has(qp.name));
+
+    if (qpsToDelete.length > 0) {
+      if (getEnvs().DRY_RUN) {
+        logger.info(`DryRun: Would delete QP: ${qpsToDelete.map((e) => e.name).join(", ")}`);
+      } else {
+        logger.info(`Deleting ${qpsToDelete.length} QualityProfiles ...`);
+        logger.debug(
+          qpsToDelete.map((e) => e.name),
+          "This QualityProfile will be deleted:",
+        );
+        for (const element of qpsToDelete) {
+          await deleteQualityProfile(element);
+        }
+      }
+    }
+  }
+
   const rootFolderDiff = await calculateRootFolderDiff(config.root_folders || []);
 
   if (rootFolderDiff) {
