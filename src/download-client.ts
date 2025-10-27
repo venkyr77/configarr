@@ -1,23 +1,9 @@
 import { getUnifiedClient } from "./clients/unified-client";
 import { logger } from "./logger";
+import { InputConfigDownloadClient } from "./types/config.types.ts";
 import type { MergedDownloadClientResource } from "./__generated__/mergedTypes";
 
 type Field = { name: string; value?: unknown };
-
-export type DownloadClientInput = {
-  name: string;
-  implementation: string; // e.g. "Sabnzbd"
-  implementationName?: string;
-  configContract?: string;
-  protocol: "torrent" | "usenet";
-  enable: boolean;
-  priority?: number;
-  removeCompletedDownloads?: boolean;
-  removeFailedDownloads?: boolean;
-  infoLink?: string;
-  tags?: number[] | string[];
-  fields?: Field[];
-};
 
 const keyOf = (c: { name?: string; implementation?: string }) => `${c.name ?? ""}::${c.implementation ?? ""}`;
 
@@ -40,8 +26,8 @@ const sameTags = (serverTags: unknown, entryTags: unknown) => {
   return s.length === e.length && [...s].sort().join(",") === [...e].sort().join(",");
 };
 
-const isSameClient = (server: MergedDownloadClientResource, entry: DownloadClientInput): boolean => {
-  const keys: (keyof DownloadClientInput)[] = [
+const isSameClient = (server: MergedDownloadClientResource, entry: InputConfigDownloadClient): boolean => {
+  const keys: (keyof InputConfigDownloadClient)[] = [
     "enable",
     "protocol",
     "priority",
@@ -54,26 +40,31 @@ const isSameClient = (server: MergedDownloadClientResource, entry: DownloadClien
     "infoLink",
   ];
   for (const k of keys) {
-    if ((server as any)[k] !== (entry as any)[k]) return false;
+    // treat undefined in config as "don't care"
+    if (entry[k] !== undefined && (server as any)[k] !== (entry as any)[k]) return false;
   }
-  if (!sameTags(server.tags as any, entry.tags as any)) return false;
-  return areFieldsEqual(server.fields as any, entry.fields as any);
+  if (entry.tags !== undefined && !sameTags(server.tags as any, entry.tags as any)) return false;
+  if (entry.fields !== undefined && !areFieldsEqual(server.fields as any, entry.fields as any)) return false;
+  return true;
 };
 
 export type DownloadClientsDiff = {
-  missingOnServer: DownloadClientInput[];
+  missingOnServer: InputConfigDownloadClient[];
   notAvailableAnymore: MergedDownloadClientResource[];
   changed: { id: string; payload: MergedDownloadClientResource }[];
 } | null;
 
-export const calculateDownloadClientsDiff = async (configEntries: DownloadClientInput[]): Promise<DownloadClientsDiff> => {
+export const calculateDownloadClientsDiff = async (configEntries: InputConfigDownloadClient[]): Promise<DownloadClientsDiff> => {
   const api = getUnifiedClient();
   const serverList: MergedDownloadClientResource[] = await api.getDownloadClients();
 
   const configMap = new Map(configEntries.map((e) => [keyOf(e), e]));
   const serverMap = new Map(serverList.map((s) => [keyOf(s), s]));
 
-  const missingOnServer: DownloadClientInput[] = [];
+  log.debug(`download_clients_config_map:${JSON.stringify(configMap)}`);
+  log.debug(`download_clients_config_map:${JSON.stringify(serverMap)}`);
+
+  const missingOnServer: InputConfigDownloadClient[] = [];
   for (const [k, entry] of configMap.entries()) {
     if (!serverMap.has(k)) missingOnServer.push(entry);
   }
