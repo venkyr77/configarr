@@ -61,8 +61,8 @@ export const calculateDownloadClientsDiff = async (configEntries: InputConfigDow
   const configMap = new Map(configEntries.map((e) => [keyOf(e), e]));
   const serverMap = new Map(serverList.map((s) => [keyOf(s), s]));
 
-  log.debug(`download_clients_config_map:${JSON.stringify(configMap)}`);
-  log.debug(`download_clients_config_map:${JSON.stringify(serverMap)}`);
+  logger.debug(`download_clients_config_map:${JSON.stringify(configMap)}`);
+  logger.debug(`download_clients_config_map:${JSON.stringify(serverMap)}`);
 
   const missingOnServer: InputConfigDownloadClient[] = [];
   for (const [k, entry] of configMap.entries()) {
