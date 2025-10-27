@@ -28,38 +28,37 @@ const sameTags = (serverTags: unknown, entryTags: unknown) => {
 
 const isSameClient = (server: MergedDownloadClientResource, entry: InputConfigDownloadClient): boolean => {
   const keys: (keyof InputConfigDownloadClient)[] = [
+    "configContract",
     "enable",
-    "protocol",
+    "implementation",
+    "implementationName",
+    "infoLink",
+    "name",
     "priority",
+    "protocol",
     "removeCompletedDownloads",
     "removeFailedDownloads",
-    "name",
-    "implementationName",
-    "implementation",
-    "configContract",
-    "infoLink",
   ];
+
+  // Core props: undefined in config = "don't care"
   for (const k of keys) {
-    // treat undefined in config as "don't care"
-    if (entry[k] !== undefined && (server as any)[k] !== (entry as any)[k]) return false;
-  }
-  if (entry.tags !== undefined && !sameTags(server.tags as any, entry.tags as any)) return false;
-  if (entry.fields !== undefined && !areFieldsEqual(server.fields as any, entry.fields as any)) return false;
-
-  if (!areFieldsEqual(server.fields as any, entry.fields as any)) {
-    logger.debug("⚠️ Field mismatch detected", {
-      name: entry.name,
-      serverFields: server.fields,
-      entryFields: entry.fields,
-    });
+    if (entry[k] !== undefined && (server as any)[k] !== (entry as any)[k]) {
+      logger.debug(
+        `DownloadClient mismatch key='${String(k)}' server=${JSON.stringify((server as any)[k])} entry=${JSON.stringify((entry as any)[k])}`,
+      );
+      return false;
+    }
   }
 
-  if (!sameTags(server.tags as any, entry.tags as any)) {
-    logger.debug("⚠️ Tag mismatch detected", {
-      name: entry.name,
-      serverTags: server.tags,
-      entryTags: entry.tags,
-    });
+  // Tags: compare only if provided in config; normalize to strings + sort
+  if (entry.tags !== undefined) {
+    const s = (Array.isArray(server.tags) ? server.tags : []).map(String).sort();
+    const e = (Array.isArray(entry.tags) ? entry.tags : []).map(String).sort();
+    const same = s.length === e.length && s.every((v, i) => v === e[i]);
+    if (!same) {
+      logger.debug(`DownloadClient mismatch tags server=${JSON.stringify(s)} entry=${JSON.stringify(e)}`);
+      return false;
+    }
   }
   return true;
 };
@@ -77,8 +76,11 @@ export const calculateDownloadClientsDiff = async (configEntries: InputConfigDow
   const configMap = new Map(configEntries.map((e) => [keyOf(e), e]));
   const serverMap = new Map(serverList.map((s) => [keyOf(s), s]));
 
-  logger.debug(`download_clients_config_map:${JSON.stringify(configMap)}`);
-  logger.debug(`download_clients_config_map:${JSON.stringify(serverMap)}`);
+  logger.debug(`download_clients config entries: ${JSON.stringify(configEntries, null, 2)}`);
+  logger.debug(`download_clients server list: ${JSON.stringify(serverList, null, 2)}`);
+
+  logger.debug(`download_clients_config_map entries: ${JSON.stringify(mapEntries(configMap), null, 2)}`);
+  logger.debug(`download_clients_server_map entries: ${JSON.stringify(mapEntries(serverMap), null, 2)}`);
 
   const missingOnServer: InputConfigDownloadClient[] = [];
   for (const [k, entry] of configMap.entries()) {
