@@ -263,6 +263,13 @@ const pipeline = async (globalConfig: InputConfigSchema, instanceConfig: InputCo
     }
   }
 
+  getUnifiedClient()
+    .getDownloadClients()
+    .forEach((dc) => {
+      logger.info(`Deleting Download Client: ${dc.name}`);
+      getUnifiedClient().deleteDownloadClient(dc.id);
+    });
+
   // Handle delay profiles
   if (
     config.delay_profiles == null ||

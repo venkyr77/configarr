@@ -146,6 +146,23 @@ export class ReadarrClient
     return this.api.v1TagCreate(tag);
   }
 
+  // Download Clients
+  async getDownloadClients() {
+    return this.api().v1DownloadclientList();
+  }
+
+  async createDownloadClient(data: any) {
+    return this.api().v1DownloadclientCreate(data);
+  }
+
+  async updateDownloadClient(id: string, data: any) {
+    return this.api().v1DownloadclientUpdate(id, data);
+  }
+
+  async deleteDownloadClient(id: string) {
+    return this.api().v1DownloadclientDelete(id);
+  }
+
   // System/Health Check
   getSystemStatus() {
     return this.api.v1SystemStatusList();
