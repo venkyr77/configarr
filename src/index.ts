@@ -9,6 +9,7 @@ import { ServerCache } from "./cache";
 import { configureApi, getUnifiedClient, unsetApi } from "./clients/unified-client";
 import { getConfig, mergeConfigsAndTemplates } from "./config";
 import { calculateCFsToManage, deleteCustomFormat, loadCustomFormatDefinitions, loadServerCustomFormats, manageCf } from "./custom-formats";
+import { calculateDownloadClientsDiff } from "./download-client";
 import { logHeading, logInstanceHeading, logger } from "./logger";
 import { calculateMediamanagementDiff, calculateNamingDiff } from "./media-management";
 import { calculateQualityDefinitionDiff, loadQualityDefinitionFromServer } from "./quality-definitions";
@@ -263,10 +264,44 @@ const pipeline = async (globalConfig: InputConfigSchema, instanceConfig: InputCo
     }
   }
 
-  const downloadClients = await getUnifiedClient().getDownloadClients();
-  for (const dc of downloadClients) {
-    logger.info(`Deleting Download Client: ${dc.name}`);
-    await getUnifiedClient().deleteDownloadClient(dc.id);
+  const dlcDiff = await calculateDownloadClientsDiff(config.download_clients ?? []);
+
+  if (dlcDiff) {
+    if (getEnvs().DRY_RUN) {
+      logger.info("DryRun: Would create/update/delete DownloadClients.");
+    } else {
+      for (const dc of dlcDiff.notAvailableAnymore) {
+        try {
+          logger.info(`Deleting DownloadClient not present in config: ${dc.name} (${dc.implementation})`);
+          await api.deleteDownloadClient(String(dc.id));
+        } catch (error: any) {
+          logger.error(`Failed deleting DownloadClient (${dc.name})`);
+          throw error;
+        }
+      }
+
+      for (const dc of dlcDiff.missingOnServer) {
+        try {
+          logger.info(`Creating DownloadClient: ${dc.name} (${dc.implementation})`);
+          await api.createDownloadClient(dc);
+        } catch (error: any) {
+          logger.error(`Failed creating DownloadClient (${dc.name})`);
+          throw error;
+        }
+      }
+
+      for (const { id, payload } of dlcDiff.changed) {
+        try {
+          logger.info(`Updating DownloadClient: ${payload.name} (id=${id})`);
+          await api.updateDownloadClient(id, payload);
+        } catch (error: any) {
+          logger.error(`Failed updating DownloadClient (${payload.name})`);
+          throw error;
+        }
+      }
+
+      logger.info("Updated DownloadClients");
+    }
   }
 
   // Handle delay profiles
