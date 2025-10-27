@@ -264,10 +264,10 @@ const pipeline = async (globalConfig: InputConfigSchema, instanceConfig: InputCo
   }
 
   const downloadClients = await getUnifiedClient().getDownloadClients();
-  downloadClients.forEach((dc) => {
+  for (const dc of downloadClients) {
     logger.info(`Deleting Download Client: ${dc.name}`);
     await getUnifiedClient().deleteDownloadClient(dc.id);
-  });
+  }
 
   // Handle delay profiles
   if (
