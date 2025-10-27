@@ -45,6 +45,22 @@ const isSameClient = (server: MergedDownloadClientResource, entry: InputConfigDo
   }
   if (entry.tags !== undefined && !sameTags(server.tags as any, entry.tags as any)) return false;
   if (entry.fields !== undefined && !areFieldsEqual(server.fields as any, entry.fields as any)) return false;
+
+  if (!areFieldsEqual(server.fields as any, entry.fields as any)) {
+    logger.debug("⚠️ Field mismatch detected", {
+      name: entry.name,
+      serverFields: server.fields,
+      entryFields: entry.fields,
+    });
+  }
+
+  if (!sameTags(server.tags as any, entry.tags as any)) {
+    logger.debug("⚠️ Tag mismatch detected", {
+      name: entry.name,
+      serverTags: server.tags,
+      entryTags: entry.tags,
+    });
+  }
   return true;
 };
 
