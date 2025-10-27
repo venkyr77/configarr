@@ -148,19 +148,19 @@ export class ReadarrClient
 
   // Download Clients
   async getDownloadClients() {
-    return this.api().v1DownloadclientList();
+    return this.api.v1DownloadclientList();
   }
 
   async createDownloadClient(data: any) {
-    return this.api().v1DownloadclientCreate(data);
+    return this.api.v1DownloadclientCreate(data);
   }
 
   async updateDownloadClient(id: string, data: any) {
-    return this.api().v1DownloadclientUpdate(id, data);
+    return this.api.v1DownloadclientUpdate(id, data);
   }
 
   async deleteDownloadClient(id: string) {
-    return this.api().v1DownloadclientDelete(id);
+    return this.api.v1DownloadclientDelete(id);
   }
 
   // System/Health Check
