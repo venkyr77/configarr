@@ -264,8 +264,6 @@ const pipeline = async (globalConfig: InputConfigSchema, instanceConfig: InputCo
     }
   }
 
-  logger.info(`cfg_download_clients:${JSON.stringify(config.download_clients)}`);
-
   const dlcDiff = await calculateDownloadClientsDiff(config.download_clients ?? []);
 
   if (dlcDiff) {
