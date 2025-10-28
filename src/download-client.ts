@@ -100,6 +100,8 @@ const isSameClient = (server: MergedDownloadClientResource, entry: InputConfigDo
     }
   }
 
+  logger.info(`DownloadClient '${entry.name}' matches server config — no update needed.`);
+
   return true;
 };
 
