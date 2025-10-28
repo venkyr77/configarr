@@ -1,10 +1,13 @@
-// Paste your current code here, and I’ll edit it inline to switch back to strict/exact matching
 import { getUnifiedClient } from "./clients/unified-client";
 import { logger } from "./logger";
 import { InputConfigDownloadClient } from "./types/config.types.ts";
 import type { MergedDownloadClientResource } from "./__generated__/mergedTypes";
 
 type Field = { name: string; value?: unknown };
+
+// Fields we should not compare because servers mask them (e.g., "********")
+const SENSITIVE_FIELD_NAMES = new Set<string>(["apiKey", "password", "api_key"]);
+const stripSecrets = (arr?: { name: string; value?: unknown }[] | null) => (arr ?? []).filter((f) => !SENSITIVE_FIELD_NAMES.has(f.name));
 
 const keyOf = (c: { name?: string; implementation?: string }) => `${c.name ?? ""}::${c.implementation ?? ""}`;
 
@@ -46,29 +49,31 @@ const isSameClient = (server: MergedDownloadClientResource, entry: InputConfigDo
     const sv = (server as any)[k] ?? null;
     const ev = (entry as any)[k] ?? null;
     if (sv !== ev) {
-      logger.debug(`DownloadClient STRICT mismatch key='${String(k)}' server=${JSON.stringify(sv)} entry=${JSON.stringify(ev)}`);
+      logger.info(`DownloadClient mismatch key='${String(k)}' server=${JSON.stringify(sv)} entry=${JSON.stringify(ev)}`);
       return false;
     }
   }
 
-  // Strict tags compare (order-insensitive, type-sensitive as per original strict logic)
+  // Tags compare (order-insensitive)
   const serverTags = Array.isArray(server.tags) ? server.tags : [];
   const entryTags = Array.isArray(entry.tags) ? entry.tags : [];
   const tagsMatch = serverTags.length === entryTags.length && [...serverTags].sort().join(",") === [...entryTags].sort().join(",");
   if (!tagsMatch) {
-    logger.debug(`DownloadClient STRICT mismatch tags server=${JSON.stringify(serverTags)} entry=${JSON.stringify(entryTags)}`);
+    logger.info(`DownloadClient mismatch tags server=${JSON.stringify(serverTags)} entry=${JSON.stringify(entryTags)}`);
     return false;
   }
 
-  // Strict fields compare (exact set + values). If mismatch, log precise diffs.
-  const fieldsEqual = areFieldsEqual(server.fields as any, entry.fields as any);
-  if (!fieldsEqual) {
-    const sm = new Map((server.fields ?? []).map((f: any) => [f.name, f.value]));
-    const em = new Map((entry.fields ?? []).map((f: any) => [f.name, f.value]));
+  // Fields compare (exact set + values) but ignoring secrets (server masks them)
+  {
+    const serverNoSecrets = stripSecrets(server.fields as any);
+    const entryNoSecrets = stripSecrets(entry.fields as any);
+
+    const sm = new Map((serverNoSecrets ?? []).map((f: any) => [f.name, f.value]));
+    const em = new Map((entryNoSecrets ?? []).map((f: any) => [f.name, f.value]));
 
     if (sm.size !== em.size) {
-      logger.debug(
-        `DownloadClient STRICT mismatch fields count server=${sm.size} entry=${em.size} (serverNames=${JSON.stringify(
+      logger.info(
+        `DownloadClient mismatch fields count server=${sm.size} entry=${em.size} (serverNames=${JSON.stringify(
           Array.from(sm.keys()),
         )}, entryNames=${JSON.stringify(Array.from(em.keys()))})`,
       );
@@ -77,19 +82,19 @@ const isSameClient = (server: MergedDownloadClientResource, entry: InputConfigDo
 
     for (const [name, sv] of sm.entries()) {
       if (!em.has(name)) {
-        logger.debug(`DownloadClient STRICT missing field in entry: '${name}'`);
+        logger.info(`DownloadClient missing field in entry: '${name}'`);
         return false;
       }
       const ev = em.get(name);
       if (JSON.stringify(sv) !== JSON.stringify(ev)) {
-        logger.debug(`DownloadClient STRICT mismatch field '${name}' server=${JSON.stringify(sv)} entry=${JSON.stringify(ev)}`);
+        logger.info(`DownloadClient mismatch field '${name}' server=${JSON.stringify(sv)} entry=${JSON.stringify(ev)}`);
         return false;
       }
     }
 
     for (const [name] of em.entries()) {
       if (!sm.has(name)) {
-        logger.debug(`DownloadClient STRICT extra field in entry: '${name}'`);
+        logger.info(`DownloadClient extra field in entry: '${name}'`);
         return false;
       }
     }
@@ -131,7 +136,7 @@ export const calculateDownloadClientsDiff = async (configEntries: InputConfigDow
   }
 
   if (missingOnServer.length === 0 && notAvailableAnymore.length === 0 && changed.length === 0) {
-    logger.debug("Download clients are in sync.");
+    logger.info("Download clients are in sync.");
     return null;
   }
 
