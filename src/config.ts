@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import yaml from "yaml";
+import { NamingConfigResource as LidarrNamingConfigResource } from "./__generated__/lidarr/data-contracts";
 import { NamingConfigResource as RadarrNamingConfigResource } from "./__generated__/radarr/data-contracts";
 import { NamingConfigResource as SonarrNamingConfigResource } from "./__generated__/sonarr/data-contracts";
 import { getHelpers } from "./env";
@@ -799,6 +800,10 @@ const mapConfigMediaNamingToApi = async (arrType: ArrType, mediaNaming: MediaNam
     logger.debug(apiObject, `Mapped mediaNaming to API:`);
 
     return apiObject;
+  }
+
+  if (arrType === "LIDARR") {
+    return mediaNaming as LidarrNamingConfigResource;
   }
 
   logger.warn(`MediaNaming not supported for ${arrType}`);
