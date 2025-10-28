@@ -7,6 +7,9 @@ type Field = { name: string; value?: unknown };
 
 const keyOf = (c: { name?: string; implementation?: string }) => `${c.name ?? ""}::${c.implementation ?? ""}`;
 
+const mapEntries = <K, V>(m: Map<K, V>) => Array.from(m.entries());
+const norm = (v: unknown) => (v === undefined ? null : v);
+
 const toFieldMap = (fields: Field[] | undefined | null): Map<string, unknown> => new Map((fields ?? []).map((f) => [f.name, f.value]));
 
 const areFieldsEqual = (a?: Field[] | null, b?: Field[] | null): boolean => {
