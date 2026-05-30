@@ -5,9 +5,13 @@
 }: {
   options.services.configarr = {
     config = lib.mkOption {
-      default = "";
-      description = "YAML configuration.";
-      type = lib.types.str;
+      default = {};
+      description = ''
+        Configarr configuration as a Nix attribute set (rendered to YAML).
+        Prefix string values with `!env` or `!secret` to emit YAML tags
+        (e.g., `api_key = "!env LIDARR_API_KEY";`).
+      '';
+      type = (pkgs.formats.yaml {}).type;
     };
 
     dataDir = lib.mkOption {

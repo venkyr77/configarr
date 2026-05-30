@@ -5,6 +5,14 @@
   ...
 }: let
   cfg = config.services.configarr;
+  yamlFormat = pkgs.formats.yaml {};
+  # Render to YAML, then post-process to unquote YAML tags like `!env FOO` or
+  # `!secret BAR` that yaml.dump emits as quoted strings. Same approach used by
+  # the home-assistant NixOS module.
+  configFile = pkgs.runCommand "configarr-config.yml" {preferLocalBuilds = true;} ''
+    cp ${yamlFormat.generate "config.yml" cfg.config} $out
+    sed -i -e "s/'\!\([a-z_]\+\) \(.*\)'/\!\1 \2/;s/^\!\!/\!/;" $out
+  '';
 in {
   config = lib.mkIf cfg.enable {
     systemd = {
@@ -15,9 +23,7 @@ in {
         ];
         description = "Run Configarr (packaged) once";
         path = [pkgs.git];
-        preStart = let
-          configFile = pkgs.writeText "configarr-config.yml" cfg.config;
-        in ''
+        preStart = ''
           echo "Creating configarr config file at ${cfg.dataDir}/config/"
           install -D -m 0644 ${configFile} ${cfg.dataDir}/config/config.yml
           chown ${cfg.user}:${cfg.group} ${cfg.dataDir}/config/config.yml
