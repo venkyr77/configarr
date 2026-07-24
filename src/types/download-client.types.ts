@@ -1,3 +1,4 @@
+import { DiffEntry, FieldChange } from "../diffReport/diffReport.types";
 import { InputConfigDownloadClient } from "./config.types";
 import type {
   Field as LidarrDownloadClientField,
@@ -57,11 +58,7 @@ export type DownloadClientField =
  * in client-facing code.
  */
 export type DownloadClientTagResource =
-  | RadarrDownloadClientTagResource
-  | SonarrDownloadClientTagResource
-  | LidarrTagResource
-  | ReadarrTagResource
-  | WhisparrTagResource;
+  RadarrDownloadClientTagResource | SonarrDownloadClientTagResource | LidarrTagResource | ReadarrTagResource | WhisparrTagResource;
 
 export interface ValidationResult {
   valid: boolean;
@@ -77,7 +74,7 @@ export interface ConnectionTestResult {
 
 export type DownloadClientDiff = {
   create: InputConfigDownloadClient[];
-  update: { config: InputConfigDownloadClient; server: DownloadClientResource; partialUpdate: boolean }[];
+  update: { config: InputConfigDownloadClient; server: DownloadClientResource; partialUpdate: boolean; fieldChanges: FieldChange[] }[];
   unchanged: { config: InputConfigDownloadClient; server: DownloadClientResource }[];
   deleted: DownloadClientResource[];
 };
@@ -86,6 +83,7 @@ export interface DownloadClientSyncResult {
   added: number;
   updated: number;
   removed: number;
+  diffEntries: DiffEntry[];
 }
 
 export type TagLike = { id?: number; label?: string | null };

@@ -20,6 +20,7 @@ const schema = z.object({
     .default("info"),
   CONFIG_LOCATION: z.string().optional(),
   SECRETS_LOCATION: z.string().optional(),
+  CONFIGARR_DIFF_OUTPUT_FILE: z.string().optional(),
   // TODO: deprecate?
   CUSTOM_REPO_ROOT: z.string().optional(),
   ROOT_PATH: z.string().optional().default(DEFAULT_ROOT_PATH),
@@ -54,6 +55,18 @@ const schema = z.object({
     .pipe(z.boolean())
     .default(false),
   CONFIGARR_ENABLE_MERGE: z
+    .string()
+    .toLowerCase()
+    .transform((x) => x === "true")
+    .pipe(z.boolean())
+    .default(false),
+  CONFIGARR_ENFORCE_CONFIG_VALIDATION: z
+    .string()
+    .toLowerCase()
+    .transform((x) => x === "true")
+    .pipe(z.boolean())
+    .default(false),
+  CONFIGARR_ENFORCE_EXTERNAL_VALIDATION: z
     .string()
     .toLowerCase()
     .transform((x) => x === "true")

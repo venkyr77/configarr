@@ -233,4 +233,109 @@ describe("DelayProfiles", () => {
     expect(diff).not.toBeNull();
     expect(diff?.missingTags).toHaveLength(1);
   });
+
+  test("calculateDelayProfilesDiff - default profile change exposes structured fieldChanges", async () => {
+    const configProfiles = {
+      default: {
+        enableUsenet: true,
+        enableTorrent: true,
+        preferredProtocol: "usenet",
+        usenetDelay: 10,
+        torrentDelay: 0,
+        bypassIfHighestQuality: false,
+        bypassIfAboveCustomFormatScore: false,
+        minimumCustomFormatScore: 0,
+        order: 1,
+      },
+    };
+
+    const serverProfiles: MergedDelayProfileResource[] = [
+      {
+        id: 1,
+        tags: [],
+        enableUsenet: true,
+        enableTorrent: true,
+        preferredProtocol: "usenet" as any,
+        usenetDelay: 0,
+        torrentDelay: 0,
+        bypassIfHighestQuality: false,
+        bypassIfAboveCustomFormatScore: false,
+        minimumCustomFormatScore: 0,
+        order: 1,
+      },
+    ];
+
+    mockGetDelayProfiles.mockResolvedValue(serverProfiles);
+
+    const { calculateDelayProfilesDiff } = await import("./delay-profiles");
+    const diff = await calculateDelayProfilesDiff(configProfiles, []);
+
+    expect(diff?.defaultProfileChanged).toBe(true);
+    expect(diff?.defaultProfileFieldChanges).toEqual([{ field: "usenetDelay", from: 0, to: 10 }]);
+  });
+
+  test("delayProfilesToDiffEntries - builds a DiffEntry for the default profile", async () => {
+    const { delayProfilesToDiffEntries } = await import("./delay-profiles");
+
+    const diff = {
+      defaultProfileChanged: true,
+      additionalProfilesChanged: false,
+      missingTags: [],
+      defaultProfile: {} as any,
+      additionalProfiles: [],
+      defaultProfileFieldChanges: [{ field: "usenetDelay", from: 0, to: 10 }],
+      additionalProfilesFieldChanges: [],
+    };
+
+    const entries = delayProfilesToDiffEntries(diff);
+
+    expect(entries).toEqual([
+      { resourceType: "DelayProfile", name: "default", action: "update", fieldChanges: [{ field: "usenetDelay", from: 0, to: 10 }] },
+    ]);
+  });
+
+  test("mapToServerDelayProfile - items-only payload omits legacy protocol fields", async () => {
+    const { mapToServerDelayProfile } = await import("./delay-profiles");
+    const mapped = mapToServerDelayProfile(
+      {
+        items: [
+          { name: "Usenet", protocol: "UsenetDownloadProtocol", allowed: true, delay: 2 },
+          { name: "Torrent", protocol: "TorrentDownloadProtocol", allowed: true, delay: 0 },
+          { name: "Youtube", protocol: "YoutubeDownloadProtocol", allowed: false, delay: 0 },
+        ],
+        bypassIfHighestQuality: true,
+        bypassIfAboveCustomFormatScore: true,
+        minimumCustomFormatScore: 0,
+      },
+      [],
+    );
+
+    expect(mapped).toEqual({
+      bypassIfHighestQuality: true,
+      bypassIfAboveCustomFormatScore: true,
+      minimumCustomFormatScore: 0,
+      order: undefined,
+      tags: [],
+      items: [
+        { name: "Usenet", protocol: "UsenetDownloadProtocol", allowed: true, delay: 2 },
+        { name: "Torrent", protocol: "TorrentDownloadProtocol", allowed: true, delay: 0 },
+        { name: "Youtube", protocol: "YoutubeDownloadProtocol", allowed: false, delay: 0 },
+      ],
+    });
+    expect(mapped).not.toHaveProperty("preferredProtocol");
+    expect(mapped).not.toHaveProperty("enableUsenet");
+  });
+
+  test("InputConfigDelayProfileSchema - accepts Items alias", async () => {
+    const { InputConfigDelayProfileSchema } = await import("./types/config.types");
+    const parsed = InputConfigDelayProfileSchema.parse({
+      Items: [{ name: "Usenet", protocol: "UsenetDownloadProtocol", allowed: true, delay: 2 }],
+      bypassIfHighestQuality: true,
+    });
+
+    expect(parsed).toEqual({
+      items: [{ name: "Usenet", protocol: "UsenetDownloadProtocol", allowed: true, delay: 2 }],
+      bypassIfHighestQuality: true,
+    });
+  });
 });
